@@ -69,6 +69,9 @@
 	// import module that handles eventsSetup
 	conspectio.eventsSetup = __webpack_require__(68);
 
+	// import module that handles viewerSetup
+	conspectio.viewerSetup = __webpack_require__(69);
+
 	window.conspectio = conspectio;
 
 /***/ },
@@ -20970,6 +20973,64 @@
 	};
 
 	module.exports = eventsSetup;
+
+/***/ },
+/* 69 */
+/***/ function(module, exports, __webpack_require__) {
+
+	"use strict";
+
+	// require in jquery
+	var $ = __webpack_require__(62);
+	var setupViewerDom = __webpack_require__(70);
+	// const viewerRTCEndpoint  = require('./viewerRTCEndpoint.js');
+
+	var viewerSetup = function viewerSetup() {
+	  // set the conspectio.initiator to false to indicate viewer role
+	  conspectio.initiator = false;
+
+	  // reset conspectio.connections
+	  conspectio.connections = {};
+
+	  // invoke setupDom - setup DOM elements on webpage with appropriate click handlers
+	  setupViewerDom();
+
+	  // invoke viewerRTCEndpoint - setup appropriate socket events relating to webRTC connection
+	  // viewerRTCEndpoint();
+	};
+
+	module.exports = viewerSetup;
+
+/***/ },
+/* 70 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	// require in jquery
+	var $ = __webpack_require__(62);
+
+	var setupViewerDom = function setupViewerDom() {
+	  var parentElement = $('#conspectioViewerContainer');
+
+	  // setup the eventName DOM element and populate with url query value
+	  var eventName = $('<h1></h1>').attr({
+	    'id': 'eventName'
+	  });
+
+	  parentElement.append(eventName);
+
+	  var eventTag = window.location.search.substring(5);
+	  $('#eventName').html(eventTag);
+
+	  var videosDiv = $('<div></div>').attr({
+	    'id': 'videosDiv'
+	  });
+
+	  parentElement.append(videosDiv);
+	};
+
+	module.exports = setupViewerDom;
 
 /***/ }
 /******/ ]);
