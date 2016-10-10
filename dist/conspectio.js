@@ -48,12 +48,6 @@
 
 	var conspectio = {};
 
-	// conspectio.hello = () => {
-	//   console.log('conspectio says hello');
-	// };
-
-	// conspectio.testRequire = require('./testRequire.js');
-
 	// require in webrtc-adapter for shimming
 	__webpack_require__(1);
 
@@ -71,6 +65,9 @@
 
 	// import module that handles broadcasterSetup
 	conspectio.broadcasterSetup = __webpack_require__(61);
+
+	// import module that handles eventsSetup
+	conspectio.eventsSetup = __webpack_require__(68);
 
 	window.conspectio = conspectio;
 
@@ -20944,6 +20941,35 @@
 	};
 
 	module.exports = send;
+
+/***/ },
+/* 68 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	var $ = __webpack_require__(62);
+
+	var eventsSetup = function eventsSetup() {
+	  conspectio.socket.emit('getEventList');
+
+	  conspectio.socket.on('sendEventList', function (eventList) {
+	    console.log('EVENT LIST:', eventList);
+	    displayEventList(eventList);
+	  });
+
+	  function displayEventList(eventList) {
+	    console.log('inside displayEventList');
+	    $('#conspectioEventsContainer').empty();
+	    $('#conspectioEventsContainer').append('<ul>');
+	    eventList.forEach(function (event) {
+	      $('#conspectioEventsContainer').append('<li><a href=\'viewer.html?tag=' + event + '\'>' + event + '</a></li>');
+	    });
+	    $('#conspectioEventsContainer').append('</ul>');
+	  };
+	};
+
+	module.exports = eventsSetup;
 
 /***/ }
 /******/ ]);
