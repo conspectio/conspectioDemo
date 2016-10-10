@@ -69,6 +69,9 @@
 	// import module that handles eventsSetup
 	conspectio.eventsSetup = __webpack_require__(68);
 
+	// import module that handles viewerSetup
+	conspectio.viewerSetup = __webpack_require__(69);
+
 	window.conspectio = conspectio;
 
 /***/ },
@@ -20970,6 +20973,241 @@
 	};
 
 	module.exports = eventsSetup;
+
+/***/ },
+/* 69 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	// require in jquery
+	var $ = __webpack_require__(62);
+	var setupViewerDom = __webpack_require__(70);
+	var viewerRTCEndpoint = __webpack_require__(71);
+
+	var viewerSetup = function viewerSetup() {
+	  // set the conspectio.initiator to false to indicate viewer role
+	  conspectio.initiator = false;
+
+	  // reset conspectio.connections
+	  conspectio.connections = {};
+
+	  // invoke setupDom - setup DOM elements on webpage with appropriate click handlers
+	  var eventTag = setupViewerDom();
+
+	  // invoke viewerRTCEndpoint - setup appropriate socket events relating to webRTC connection
+	  viewerRTCEndpoint(eventTag);
+	};
+
+	module.exports = viewerSetup;
+
+/***/ },
+/* 70 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	// require in jquery
+	var $ = __webpack_require__(62);
+
+	var setupViewerDom = function setupViewerDom() {
+	  var parentElement = $('#conspectioViewerContainer');
+
+	  // setup the eventName DOM element and populate with url query value
+	  var eventName = $('<h1></h1>').attr({
+	    'id': 'eventName'
+	  });
+
+	  parentElement.append(eventName);
+
+	  var eventTag = window.location.search.substring(5);
+	  $('#eventName').html(eventTag);
+
+	  var videosDiv = $('<div></div>').attr({
+	    'id': 'videosDiv'
+	  });
+
+	  parentElement.append(videosDiv);
+
+	  return eventTag;
+	};
+
+	module.exports = setupViewerDom;
+
+/***/ },
+/* 71 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	var ConspectioViewer = __webpack_require__(73);
+	var send = __webpack_require__(67);
+
+	var viewerRTCEndpoint = function viewerRTCEndpoint(eventTag) {
+
+	  // viewer wants to initiate contact with broadcaster
+	  conspectio.socket.emit('initiateView', eventTag);
+
+	  // viewer receives offer or candidate signaling messages
+	  conspectio.socket.on('signal', function (fromId, message) {
+	    if (message.type === 'offer') {
+	      var newPC = new ConspectioViewer(fromId);
+	      conspectio.connections[fromId] = newPC;
+	      newPC.init();
+	      newPC.receiveOffer(message.offer);
+	      newPC.createAnswerWrapper(); // since this needs to happen after receiveOffer, put as callback into receiveOffer?
+	    } else if (message.type === 'candidate') {
+	      var currentPC = conspectio.connections[fromId];
+	      if (currentPC) {
+	        currentPC.addCandidate(message.candidate);
+	      }
+	    }
+	  });
+
+	  //redirect viewer to events page if there are no more broadcasters streaming their event
+	  conspectio.socket.on('redirectToEvents', function (destination) {
+	    console.log('redirecting viewer to events page');
+	    window.location.href = destination;
+	  });
+
+	  //broadcaster left - close connection & remove from connections object
+	  conspectio.socket.on('broadcasterLeft', function (broadcasterId) {
+	    var currentPC = conspectio.connections[broadcasterId];
+	    if (currentPC) {
+	      currentPC.closeWrapper();
+	      delete conspectio.connections[broadcasterId];
+	    }
+	  });
+	};
+
+	module.exports = viewerRTCEndpoint;
+
+/***/ },
+/* 72 */,
+/* 73 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+	// require in jquery
+	var $ = __webpack_require__(62);
+	var send = __webpack_require__(67);
+
+	// custom wrapper class over RTCPeerConnection object
+
+	var ConspectioViewer = function () {
+	  function ConspectioViewer(broadcasterId) {
+	    _classCallCheck(this, ConspectioViewer);
+
+	    this.broadcasterId = broadcasterId;
+	    this.pc;
+	  }
+
+	  _createClass(ConspectioViewer, [{
+	    key: 'init',
+	    value: function init() {
+	      this.pc = new RTCPeerConnection({
+	        'iceServers': [{
+	          'url': 'stun:stun.l.google.com:19302'
+	        }, {
+	          url: 'turn:numb.viagenie.ca',
+	          credential: 'muazkh',
+	          username: 'webrtc@live.com'
+	        }]
+	      });
+
+	      this.pc.broadcasterId = this.broadcasterId; // add custom attribute
+	      this.pc.onicecandidate = this.handleIceCandidate;
+	      this.pc.onaddstream = this.handleRemoteStreamAdded;
+	      this.pc.onremovestream = this.handleRemoteStreamRemoved;
+	      this.pc.oniceconnectionstatechange = this.handleIceConnectionChange;
+	    }
+	  }, {
+	    key: 'handleIceCandidate',
+	    value: function handleIceCandidate(event) {
+	      console.log('handleIceCandidate event: ', event);
+	      if (event.candidate) {
+	        send(this.broadcasterId, {
+	          type: "candidate",
+	          candidate: event.candidate
+	        });
+	      }
+	    }
+	  }, {
+	    key: 'handleRemoteStreamAdded',
+	    value: function handleRemoteStreamAdded(event) {
+	      console.log('got a stream from broadcaster');
+	      // got remote video stream, now let's show it in a video tag
+	      var video = $('<video class="newVideo"></video>').attr({
+	        'src': window.URL.createObjectURL(event.stream),
+	        'autoplay': true,
+	        'id': this.broadcasterId.slice(2)
+	      });
+	      $('#videosDiv').append(video);
+	    }
+	  }, {
+	    key: 'handleRemoteStreamRemoved',
+	    value: function handleRemoteStreamRemoved(event) {
+	      console.log('broadcaster stream removed');
+	      //remove stream video tag - don't think this handler is being invoked
+	      // $('#' + this.broadcasterId).remove();
+	    }
+	  }, {
+	    key: 'handleIceConnectionChange',
+	    value: function handleIceConnectionChange() {
+	      if (this.pc) {
+	        console.log('inside handleIceCandidateDisconnect', this.pc.iceConnectionState);
+	        if (this.pc.iceConnectionState === 'disconnected') {
+	          console.log('inside pc.onIceConnectionState');
+	          this.pc.close();
+	          delete conspectio.connections[this.broadcasterId];
+	        }
+	      }
+	    }
+	  }, {
+	    key: 'receiveOffer',
+	    value: function receiveOffer(offer) {
+	      this.pc.setRemoteDescription(new RTCSessionDescription(offer));
+	    }
+	  }, {
+	    key: 'createAnswerWrapper',
+	    value: function createAnswerWrapper() {
+	      var _this = this;
+
+	      this.pc.createAnswer(function (answer) {
+	        _this.pc.setLocalDescription(new RTCSessionDescription(answer));
+
+	        send(_this.broadcasterId, {
+	          type: "answer",
+	          answer: answer
+	        });
+	      }, function (error) {
+	        console.log('Error with creating viewer offer', error);
+	      });
+	    }
+	  }, {
+	    key: 'addCandidate',
+	    value: function addCandidate(candidate) {
+	      this.pc.addIceCandidate(new RTCIceCandidate(candidate));
+	    }
+	  }, {
+	    key: 'closeWrapper',
+	    value: function closeWrapper() {
+	      this.pc.close();
+	      //remove stream video tag
+	      $('#' + this.broadcasterId.slice(2)).remove();
+	      console.log('broadcaster stream removed from closewrapper');
+	    }
+	  }]);
+
+	  return ConspectioViewer;
+	}();
+
+	module.exports = ConspectioViewer;
 
 /***/ }
 /******/ ]);
