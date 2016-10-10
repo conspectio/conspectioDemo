@@ -1,1 +1,2 @@
-conspectio.broadcasterSetup(); // setup
+// setup for broadcaster
+conspectio.broadcasterSetup(); 
