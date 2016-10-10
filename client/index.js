@@ -1,2 +1,0 @@
-conspectio.hello();
-conspectio.testRequire();
