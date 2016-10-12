@@ -20679,13 +20679,13 @@
 	  });
 
 	  var videoContainer = $('<div></div>').append(broadcasterStream);
-	  parentElement.append(videoContainer);
+	  //parentElement.append(videoContainer);
 
-	  var errorMsg = $('<div></div>').attr({
-	    'id': 'errorMsg'
+	  var broadcastMsg = $('<div></div>').attr({
+	    'id': 'broadcastMsg'
 	  });
 
-	  parentElement.append(errorMsg);
+	  //parentElement.append(broadcastMsg);
 
 	  var eventTag = $('<input></input>').attr({
 	    'id': 'eventTag',
@@ -20695,24 +20695,53 @@
 
 	  var startButton = $('<input></input>').attr({
 	    'id': 'startButton',
+	    'class': 'btn btn-success btn-sm',
 	    'type': 'submit',
 	    'value': 'start'
 	  });
 
 	  var stopButton = $('<input></input>').attr({
 	    'id': 'stopButton',
+	    'class': 'btn btn-danger btn-sm',
 	    'type': 'submit',
 	    'value': 'stop',
 	    // 'onclick': 'stopStream',
 	    'disabled': true
 	  });
 
-	  var inputDiv = $('<div></div>');
+	  var inputDiv = $('<div></div>').attr({
+	    'id': 'broadcasterinputs'
+	  });
+
 	  inputDiv.append(eventTag);
 	  inputDiv.append(startButton);
 	  inputDiv.append(stopButton);
 
-	  parentElement.append(inputDiv);
+	  var row = $('<div></div>').attr({
+	    'class': 'row'
+	  });
+
+	  var col = $('<div></div>').attr({
+	    'class': 'col-xs-6'
+	  });
+	  row.append(col);
+	  var thumbnail = $('<div></div>').attr({
+	    'class': 'thumbnail'
+	  });
+	  row.append(thumbnail);
+	  var caption = $('<div></div>').attr({
+	    'class': 'caption'
+	  });
+	  var title = $('<h2>Broadcast to the World!</h2>');
+	  var headline = $('<p>Add an event name and hit start!</p>');
+	  caption.append(title);
+	  caption.append(headline);
+
+	  thumbnail.append(caption);
+	  thumbnail.append(inputDiv);
+	  thumbnail.append(videoContainer);
+	  thumbnail.append(broadcastMsg);
+	  parentElement.append(row);
 
 	  // setup dom event handlers
 	  function sendEventTag() {
@@ -20741,6 +20770,8 @@
 	    $('#startButton').prop('disabled', false);
 	    $('#stopButton').prop('disabled', true);
 	    conspectio.socket.emit('removeBroadcaster', conspectio.broadcasterEventTag);
+	    $('#broadcastMsg').empty();
+	    $('#broadcastMsg').html('<h4>You have stopped streaming</h4>');
 	  };
 
 	  $('#startButton').on('click', sendEventTag);
@@ -20966,7 +20997,7 @@
 	    $('#conspectioEventsContainer').empty();
 	    $('#conspectioEventsContainer').append('<ul>');
 	    eventList.forEach(function (event) {
-	      $('#conspectioEventsContainer').append('<li><a href=\'viewer.html?tag=' + event + '\'>' + event + '</a></li>');
+	      $('#conspectioEventsContainer').append('<li><a href=\'viewer.html?tag=' + event + '\'><span class =\'label label-default\'>' + event + '</span></a></li>');
 	    });
 	    $('#conspectioEventsContainer').append('</ul>');
 	  };
@@ -21011,7 +21042,7 @@
 	var $ = __webpack_require__(62);
 
 	var setupViewerDom = function setupViewerDom() {
-	  var parentElement = $('#conspectioViewerContainer');
+	  var parentElement = $('#conspectioViewerContainer').addClass('row viewergridrow');
 
 	  // setup the eventName DOM element and populate with url query value
 	  var eventName = $('<h1></h1>').attr({
@@ -21040,7 +21071,7 @@
 
 	'use strict';
 
-	var ConspectioViewer = __webpack_require__(73);
+	var ConspectioViewer = __webpack_require__(72);
 	var send = __webpack_require__(67);
 
 	var viewerRTCEndpoint = function viewerRTCEndpoint(eventTag) {
@@ -21083,8 +21114,7 @@
 	module.exports = viewerRTCEndpoint;
 
 /***/ },
-/* 72 */,
-/* 73 */
+/* 72 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -21147,7 +21177,13 @@
 	        'autoplay': true,
 	        'id': this.broadcasterId.slice(2)
 	      });
-	      $('#videosDiv').append(video);
+	      var responsiveGrid = $('<div class = "col-xs-6"></div>');
+	      var videoDiv = $('<div id="videosDiv"></div>');
+	      var videoDivVideo = videoDiv.append(video);
+	      var responsiveGridvideoDivVideo = responsiveGrid.append(videoDivVideo);
+
+	      $('.viewergridrow').append(responsiveGridvideoDivVideo);
+	      //$('#videosDiv').append(video);
 	    }
 	  }, {
 	    key: 'handleRemoteStreamRemoved',
